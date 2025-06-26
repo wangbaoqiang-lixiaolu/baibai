@@ -1,221 +1,434 @@
-#----------------------------------------------------------------#
-#                                                                #
-#          Clash.Meta 静态配置文件 - 迁移自扩展脚本          #
-#                                                                #
-#----------------------------------------------------------------#
+# Clash.Meta Configuration File
+# Generated from mihome extension script
 
-# --- 基础配置参数 (Section 2) ---
-# 定义 Clash 核心的监听端口、API 和全局行为
-
-# 混合端口，同时支持 HTTP 和 SOCKS5 协议，简化客户端配置
-mixed-port: 7890
-
-# 允许来自局域网的连接，必须设置为 true 才能让其他设备使用此 Clash 实例作为网关
-allow-lan: true
-
-# 监听所有网络接口，配合 allow-lan: true 使用
-bind-address: '*'
-
-# RESTful API 监听地址，设置为 0.0.0.0:9090 以允许局域网内的 Web UI 访问
-external-controller: '0.0.0.0:9090'
-
-# (可选) API 访问密钥，增强安全性
-# secret: 'YourSecretKey'
-
-# Web UI (Dashboard) 的路径，请根据实际情况修改
-external-ui: './dashboard'
-
-# 运行模式，必须为 'rule' 以启用规则分流
-mode: rule
-
-# 日志级别，'info' 提供了足够的信息用于日常监控，'debug' 用于深度排查
-log-level: info
-
-# 是否启用 IPv6，根据您的网络环境决定
-ipv6: false
-
-# --- DNS 配置 (Section 6) ---
-# 构建一个高效、抗污染的 DNS 解析系统
-
+# DNS Configuration
 dns:
   enable: true
-  # 监听地址，作为局域网的 DNS 服务器
-  listen: 0.0.0.0:53
-  # 增强模式，'fake-ip' 是实现 TUN 模式下域名分流的基石
+  listen: 0.0.0.0:1053
+  prefer-h3: false
+  respect-rules: true
+  use-system-hosts: false
+  cache-algorithm: arc
   enhanced-mode: fake-ip
-  # Fake IP 地址池的范围
   fake-ip-range: 198.18.0.1/16
-  # 优先使用系统 hosts 文件
-  use-hosts: true
-  # 国内 DNS 服务器，用于快速解析国内域名
-  nameserver:
+  fake-ip-filter:
+    - '+.lan'
+    - '+.local'
+    - '+.msftconnecttest.com'
+    - '+.msftncsi.com'
+    - 'localhost.ptlogin2.qq.com'
+    - 'localhost.sec.qq.com'
+    - 'localhost.work.weixin.qq.com'
+  default-nameserver:
     - 223.5.5.5
-    - 119.29.29.29
-  # 备用 DNS，使用加密的国外 DNS (DoH/DoT) 来防止污染
-  fallback:
-    - https://dns.google/dns-query
-    - tls://1.1.1.1:853
-  # 备用 DNS 过滤器，当 nameserver 解析出非中国大陆 IP 时，使用 fallback 的结果
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
+    - 1.2.4.8
+  nameserver:
+    - "https://cloudflare-dns.com/dns-query"
+    - "https://77.88.8.8/dns-query"
+    - "https://8.8.4.4/dns-query#ecs=1.1.1.1/24&ecs-override=true"
+    - "https://208.67.222.222/dns-query#ecs=1.1.1.1/24&ecs-override=true"
+    - "https://9.9.9.9/dns-query"
+  proxy-server-nameserver:
+    - "https://223.5.5.5/dns-query"
+    - "https://doh.pub/dns-query"
+  direct-nameserver:
+    - "https://223.5.5.5/dns-query"
+    - "https://doh.pub/dns-query"
+  direct-nameserver-follow-policy: false
+  nameserver-policy:
+    'geosite:cn':
+      - "https://223.5.5.5/dns-query"
+      - "https://doh.pub/dns-query"
 
-# --- TUN 模式配置 (Section 6) ---
-# 接管系统所有网络流量，实现真·全局代理
+# Hardcoded Landing Node Proxies
+proxies:
+  - name: "alice"
+    server: "91.103.121.216"
+    port: 1080
+    type: socks5
+    username: "wangbaoqiang"
+    password: "wangdabao5424"
+    tls: false
+    skip-cert-verify: true
+    udp: true
+    dialer-proxy: "⚙️ 节点选择"
+  - name: "ACCK日本落地"
+    server: "154.82.137.234"
+    port: 20742
+    type: ss
+    cipher: "chacha20-ietf-poly1305"
+    password: "123456"
+    udp: true
+    dialer-proxy: "⚙️ 节点选择"
 
-tun:
-  enable: true
-  # 使用操作系统的网络协议栈，性能最高
-  stack: system
-  # 自动配置系统路由表
-  auto-route: true
-  # 自动检测主网络接口
-  auto-detect-interface: true
-  # DNS 劫持，TUN 模式的命脉，确保所有 DNS 请求都被 Clash 处理
-  dns-hijack:
-    - 'any:53'
-
-# --- 代理订阅源 (Section 3) ---
-# 定义所有的远程代理订阅链接
-
+# Proxy Subscriptions
 proxy-providers:
-  # 示例订阅源 1
-  MyProvider1:
-    type: http
-    url: "https://push.cauenvao.click/api/v1/client/subscribe?token=1a6d8263800c15ecb2c53acc163dc5fb"
-    # 每小时更新一次
-    interval: 3600
-    path:./providers/provider1.yaml
-    health-check:
-      enable: true
-      url: http://www.gstatic.com/generate_204
-      interval: 600
-  # 示例订阅源 2
-  MyProvider2:
+  "流量光":
     type: http
     url: "https://rgergergergerg6555.saojc.xyz/api/v1/client/subscribe?token=44e06d7500a929e0ea0e21f4d09d0273"
-    interval: 3600
-    path:./providers/provider2.yaml
+    interval: 86400
     health-check:
       enable: true
-      url: http://www.gstatic.com/generate_204
-      interval: 600
+      url: "https://www.google.com/generate_204"
+      interval: 300
+    override:
+      additional-prefix: "流量光 |"
+  "green":
+    type: http
+    url: "http://green.592527.xyz:2096/wangbaoqiang/7ruf35lzrntxcu25"
+    interval: 86400
+    health-check:
+      enable: true
+      url: "https://www.google.com/generate_204"
+      interval: 300
+    override:
+      additional-prefix: "green |"
 
-# --- 代理组 (Section 4) ---
-# 组织代理节点，定义策略行为
+# Rule Providers
+rule-providers:
+  reject:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt"
+    path: "./ruleset/loyalsoldier/reject.yaml"
+  icloud:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt"
+    path: "./ruleset/loyalsoldier/icloud.yaml"
+  apple:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt"
+    path: "./ruleset/loyalsoldier/apple.yaml"
+  google:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/google.txt"
+    path: "./ruleset/loyalsoldier/google.yaml"
+  proxy:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt"
+    path: "./ruleset/loyalsoldier/proxy.yaml"
+  direct:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt"
+    path: "./ruleset/loyalsoldier/direct.yaml"
+  private:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt"
+    path: "./ruleset/loyalsoldier/private.yaml"
+  gfw:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt"
+    path: "./ruleset/loyalsoldier/gfw.yaml"
+  "tld-not-cn":
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/tld-not-cn.txt"
+    path: "./ruleset/loyalsoldier/tld-not-cn.yaml"
+  telegramcidr:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: ipcidr
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt"
+    path: "./ruleset/loyalsoldier/telegramcidr.yaml"
+  cncidr:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: ipcidr
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt"
+    path: "./ruleset/loyalsoldier/cncidr.yaml"
+  lancidr:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: ipcidr
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt"
+    path: "./ruleset/loyalsoldier/lancidr.yaml"
+  applications:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt"
+    path: "./ruleset/loyalsoldier/applications.yaml"
+  openai:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite/classical/openai.yaml"
+    path: "./ruleset/MetaCubeX/openai.yaml"
+  bybit:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite/classical/bybit.yaml"
+    path: "./ruleset/MetaCubeX/bybit.yaml"
+  pikpak:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite/classical/pikpak.yaml"
+    path: "./ruleset/MetaCubeX/pikpak.yaml"
+  anthropic:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite/classical/anthropic.yaml"
+    path: "./ruleset/MetaCubeX/anthropic.yaml"
+  "google-gemini":
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite/classical/google-gemini.yaml"
+    path: "./ruleset/MetaCubeX/google-gemini.yaml"
+  xai:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite/classical/xai.yaml"
+    path: "./ruleset/MetaCubeX/xai.yaml"
+  perplexity:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite/classical/perplexity.yaml"
+    path: "./ruleset/MetaCubeX/perplexity.yaml"
+  microsoft:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite/classical/microsoft.yaml"
+    path: "./ruleset/MetaCubeX/microsoft.yaml"
 
+# Proxy Groups
 proxy-groups:
-  # --- 顶层手动选择组 ---
-  - name: 'PROXY'
+  - name: "🔰 模式选择"
     type: select
     proxies:
-      - '🔰 自动选择'
-      - ' DIRECT'
-      - 'REJECT'
-      - '🌏 国外流量'
-      - '🇭🇰 香港节点'
-      - '🇯🇵 日本节点'
-      - '🇺🇸 美国节点'
-
-  # --- 自动策略组 ---
-  - name: '🔰 自动选择'
-    type: url-test
-    # 引入所有订阅源
-    use:
-      - MyProvider1
-      - MyProvider2
-    url: 'http://www.gstatic.com/generate_204'
-    interval: 300
-    # 延迟容忍值，防止频繁切换
-    tolerance: 50
-
-  - name: '🌏 国外流量'
-    type: url-test
-    use:
-      - MyProvider1
-      - MyProvider2
-    # 排除国内节点
-    exclude-filter: 'CN|中国|内|专线'
-    url: 'http://www.gstatic.com/generate_204'
-    interval: 300
-    tolerance: 50
-
-  # --- 按区域筛选的策略组 ---
-  - name: '🇭🇰 香港节点'
-    type: url-test
-    use:
-      - MyProvider1
-      - MyProvider2
-    # 使用正则表达式筛选香港节点
-    filter: 'HK|Hong Kong|香港'
-    url: 'http://www.gstatic.com/generate_204'
-    interval: 300
-    tolerance: 50
-
-  - name: '🇯🇵 日本节点'
-    type: url-test
-    use:
-      - MyProvider1
-      - MyProvider2
-    filter: 'JP|Japan|日本'
-    url: 'http://www.gstatic.com/generate_204'
-    interval: 300
-    tolerance: 50
-
-  - name: '🇺🇸 美国节点'
-    type: url-test
-    use:
-      - MyProvider1
-      - MyProvider2
-    filter: 'US|United States|美国'
-    url: 'http://www.gstatic.com/generate_204'
-    interval: 300
-    tolerance: 50
-
-  # --- 特定服务策略组 ---
-  - name: '📺 Netflix'
+      - "⚙️ 节点选择"
+      - "🕊️ 落地节点"
+      - "🔗 全局直连"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "⚙️ 节点选择"
     type: select
     proxies:
-      - '🇭🇰 香港节点'
-      - '🇯🇵 日本节点'
-      - '🇺🇸 美国节点'
-      - 'PROXY'
-
-  - name: '🎵 YouTube'
+      - "♻️ 延迟选优"
+      - "🚑 故障转移"
+      - "⚖️ 负载均衡(散列)"
+      - "☁️ 负载均衡(轮询)"
+    include-all: true
+    exclude-filter: '^(alice|ACCK日本落地)$'
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/adjust.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "🕊️ 落地节点"
     type: select
     proxies:
-      - '🔰 自动选择'
-      - 'PROXY'
-
-# --- 规则集 (Section 5) ---
-# 定义流量分流规则，顺序至关重要
-
-rules:
-  # --- 直连规则 ---
-  # 局域网地址
-  - GEOIP, LAN, DIRECT
-  # 中国大陆 IP
-  - GEOIP, CN, DIRECT
-  # 中国大陆域名
-  - GEOSITE, CN, DIRECT
-  # 常见需要直连的服务
-  - GEOSITE, Private, DIRECT
-  - GEOSITE, Apple-CN, DIRECT
-  - GEOSITE, Microsoft-CN, DIRECT
-
-  # --- 代理规则 ---
-  # 特定服务走特定策略
-  - GEOSITE, Netflix, '📺 Netflix'
-  - GEOSITE, Youtube, '🎵 YouTube'
-  # Telegram IP 走代理，无需解析域名，提高速度和抗污染
-  - GEOIP, Telegram, PROXY, no-resolve
-  # 国外知名网站
-  - GEOSITE, Google, PROXY
-  - GEOSITE, Facebook, PROXY
-  - GEOSITE, Twitter, PROXY
-
-  # --- 最终规则 ---
-  # 未被匹配的非中国大陆流量走代理
-  - GEOSITE, Geolocation-!CN, PROXY
-  # 所有其他未匹配的流量走总代理入口
-  - MATCH, PROXY
+      - "alice"
+      - "ACCK日本落地"
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/openwrt.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "♻️ 延迟选优"
+    type: url-test
+    tolerance: 50
+    include-all: true
+    exclude-filter: '^(alice|ACCK日本落地)$'
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/speed.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "🚑 故障转移"
+    type: fallback
+    include-all: true
+    exclude-filter: '^(alice|ACCK日本落地)$'
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/ambulance.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "⚖️ 负载均衡(散列)"
+    type: load-balance
+    strategy: consistent-hashing
+    include-all: true
+    exclude-filter: '^(alice|ACCK日本落地)$'
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/merry_go.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "☁️ 负载均衡(轮询)"
+    type: load-balance
+    strategy: round-robin
+    include-all: true
+    exclude-filter: '^(alice|ACCK日本落地)$'
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/balance.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "🌍 国外媒体"
+    type: select
+    proxies:
+      - "🔰 模式选择"
+      - "⚙️ 节点选择"
+      - "🕊️ 落地节点"
+      - "♻️ 延迟选优"
+      - "🚑 故障转移"
+      - "⚖️ 负载均衡(散列)"
+      - "☁️ 负载均衡(轮询)"
+      - "🔗 全局直连"
+    include-all: true
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/youtube.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "💸 ChatGPT-Gemini-XAI-Perplexity"
+    type: select
+    proxies:
+      - "🔰 模式选择"
+      - "⚙️ 节点选择"
+      - "🕊️ 落地节点"
+      - "🔗 全局直连"
+      - "♻️ 延迟选优"
+      - "🚑 故障转移"
+      - "⚖️ 负载均衡(散列)"
+      - "☁️ 负载均衡(轮询)"
+    include-all: true
+    exclude-filter: "(?i)港|hk|hongkong|hong kong|俄|ru|russia|澳|macao"
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/chatgpt.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "💵 Claude"
+    type: select
+    proxies:
+      - "🔰 模式选择"
+      - "⚙️ 节点选择"
+      - "🕊️ 落地节点"
+      - "🔗 全局直连"
+      - "♻️ 延迟选优"
+      - "🚑 故障转移"
+      - "⚖️ 负载均衡(散列)"
+      - "☁️ 负载均衡(轮询)"
+    include-all: true
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/claude.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "🪙 Bybit"
+    type: select
+    proxies:
+      - "🔰 模式选择"
+      - "⚙️ 节点选择"
+      - "🕊️ 落地节点"
+      - "🔗 全局直连"
+      - "♻️ 延迟选优"
+      - "🚑 故障转移"
+      - "⚖️ 负载均衡(散列)"
+      - "☁️ 负载均衡(轮询)"
+    include-all: true
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/link.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "🅿️ PikPak"
+    type: select
+    proxies:
+      - "🔰 模式选择"
+      - "⚙️ 节点选择"
+      - "🕊️ 落地节点"
+      - "🔗 全局直连"
+      - "♻️ 延迟选优"
+      - "🚑 故障转移"
+      - "⚖️ 负载均衡(散列)"
+      - "☁️ 负载均衡(轮询)"
+    include-all: true
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/link.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "📲 电报消息"
+    type: select
+    proxies:
+      - "🔰 模式选择"
+      - "⚙️ 节点选择"
+      - "🕊️ 落地节点"
+      - "♻️ 延迟选优"
+      - "🚑 故障转移"
+      - "⚖️ 负载均衡(散列)"
+      - "☁️ 负载均衡(轮询)"
+      - "🔗 全局直连"
+    include-all: true
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/telegram.svg"
+    interval: 0
+    timeout: 3000
+    url: "https://www.google.com/generate_204"
+    lazy: true
+    max-failed-times: 3
+  - name: "📢 谷歌服务"
+    type: select
+    proxies:
+      - "🔰 模式选择"
+      - "⚙️ 节点选择"
+      - "🕊️ 落地节点"
+      - "♻️ 延迟
