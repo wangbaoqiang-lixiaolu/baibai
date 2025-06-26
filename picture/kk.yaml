@@ -83,6 +83,16 @@ proxy-providers:
       interval: 300
     override:
       additional-prefix: "green |"
+   "OuO":
+    type: http
+    url: "https://push.cauenvao.click/api/v1/client/subscribe?token=1a6d8263800c15ecb2c53acc163dc5fb"
+    interval: 86400
+    health-check:
+      enable: true
+      url: "https://www.google.com/generate_204"
+      interval: 300
+    override:
+      additional-prefix: "OuO |"
 
 # Rule Providers
 rule-providers:
