@@ -1,209 +1,221 @@
-# Clash.Meta 配置文件 (安全版)
-# 移除了所有 Emoji 符号以增强客户端兼容性
-# 最后更新: 2024-06-27
+#----------------------------------------------------------------#
+#                                                                #
+#          Clash.Meta 静态配置文件 - 迁移自扩展脚本          #
+#                                                                #
+#----------------------------------------------------------------#
 
-# 端口设置
+# --- 基础配置参数 (Section 2) ---
+# 定义 Clash 核心的监听端口、API 和全局行为
+
+# 混合端口，同时支持 HTTP 和 SOCKS5 协议，简化客户端配置
 mixed-port: 7890
+
+# 允许来自局域网的连接，必须设置为 true 才能让其他设备使用此 Clash 实例作为网关
 allow-lan: true
-mode: rule # rule/global/direct
+
+# 监听所有网络接口，配合 allow-lan: true 使用
+bind-address: '*'
+
+# RESTful API 监听地址，设置为 0.0.0.0:9090 以允许局域网内的 Web UI 访问
+external-controller: '0.0.0.0:9090'
+
+# (可选) API 访问密钥，增强安全性
+# secret: 'YourSecretKey'
+
+# Web UI (Dashboard) 的路径，请根据实际情况修改
+external-ui: './dashboard'
+
+# 运行模式，必须为 'rule' 以启用规则分流
+mode: rule
+
+# 日志级别，'info' 提供了足够的信息用于日常监控，'debug' 用于深度排查
 log-level: info
+
+# 是否启用 IPv6，根据您的网络环境决定
 ipv6: false
 
-# DNS 配置
+# --- DNS 配置 (Section 6) ---
+# 构建一个高效、抗污染的 DNS 解析系统
+
 dns:
   enable: true
-  listen: 0.0.0.0:1053
-  prefer-h3: false
-  respect-rules: true
-  use-system-hosts: false
-  cache-algorithm: arc
+  # 监听地址，作为局域网的 DNS 服务器
+  listen: 0.0.0.0:53
+  # 增强模式，'fake-ip' 是实现 TUN 模式下域名分流的基石
   enhanced-mode: fake-ip
+  # Fake IP 地址池的范围
   fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - '+.lan'
-    - '+.local'
-    - '+.msftconnecttest.com'
-    - '+.msftncsi.com'
-    - 'localhost.ptlogin2.qq.com'
-    - 'localhost.sec.qq.com'
-    - 'localhost.work.weixin.qq.com'
-  default-nameserver:
+  # 优先使用系统 hosts 文件
+  use-hosts: true
+  # 国内 DNS 服务器，用于快速解析国内域名
+  nameserver:
     - 223.5.5.5
     - 119.29.29.29
-  nameserver:
-    - https://cloudflare-dns.com/dns-query
+  # 备用 DNS，使用加密的国外 DNS (DoH/DoT) 来防止污染
+  fallback:
     - https://dns.google/dns-query
-  proxy-server-nameserver:
-    - https://cloudflare-dns.com/dns-query
-  direct-nameserver:
-    - https://223.5.5.5/dns-query
-    - https://doh.pub/dns-query
-  nameserver-policy:
-    'geosite:cn':
-      - https://223.5.5.5/dns-query
+    - tls://1.1.1.1:853
+  # 备用 DNS 过滤器，当 nameserver 解析出非中国大陆 IP 时，使用 fallback 的结果
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
 
-# 代理节点 (手动管理)
-# -----------------------------------------------
-proxies:
-  - name: 'Landing-Socks5-Example'
-    server: 1.2.3.4 # 替换成你的落地节点 IP 或域名
-    port: 1080
-    type: socks5
-    username: 'your-user' # 替换成你的用户名
-    password: 'your-password' # 替换成你的密码
-    udp: true
-    dialer-proxy: 'Nodes-Select' # 关键：指定前置代理组
+# --- TUN 模式配置 (Section 6) ---
+# 接管系统所有网络流量，实现真·全局代理
 
-  - name: 'Landing-SS-Example'
-    server: 5.6.7.8
-    port: 20742
-    type: ss
-    cipher: chacha20-ietf-poly1305
-    password: 'your-password'
-    udp: true
-    dialer-proxy: 'Nodes-Select' # 关键：指定前置代理组
+tun:
+  enable: true
+  # 使用操作系统的网络协议栈，性能最高
+  stack: system
+  # 自动配置系统路由表
+  auto-route: true
+  # 自动检测主网络接口
+  auto-detect-interface: true
+  # DNS 劫持，TUN 模式的命脉，确保所有 DNS 请求都被 Clash 处理
+  dns-hijack:
+    - 'any:53'
 
-# 代理订阅管理 (Proxy Providers)
-# -----------------------------------------------
+# --- 代理订阅源 (Section 3) ---
+# 定义所有的远程代理订阅链接
+
 proxy-providers:
-  Provider-1: # 您可以重命名为 'LiuLiangGuang' 等
+  # 示例订阅源 1
+  MyProvider1:
     type: http
-    # 替换成您的订阅链接
-    url: "https://your-subscription-url.com/api/v1/client/subscribe?token=your-token"
-    interval: 86400
-    path: ./providers/Provider-1.yaml
+    url: "https://your-subscription-url-1.com/sub"
+    # 每小时更新一次
+    interval: 3600
+    path:./providers/provider1.yaml
     health-check:
       enable: true
-      url: https://www.google.com/generate_204
-      interval: 300
-    override:
-      additional-prefix: "P1 | "
-
-  Provider-2: # 您可以重命名为 'Green' 等
+      url: http://www.gstatic.com/generate_204
+      interval: 600
+  # 示例订阅源 2
+  MyProvider2:
     type: http
-    # 替换成您的订阅链接
-    url: "http://your-subscription-url.com/your-path"
-    interval: 86400
-    path: ./providers/Provider-2.yaml
+    url: "https://your-subscription-url-2.com/sub"
+    interval: 3600
+    path:./providers/provider2.yaml
     health-check:
       enable: true
-      url: https://www.google.com/generate_204
-      interval: 300
-    override:
-      additional-prefix: "P2 | "
+      url: http://www.gstatic.com/generate_204
+      interval: 600
 
-# 代理组 (策略组)
-# -----------------------------------------------
+# --- 代理组 (Section 4) ---
+# 组织代理节点，定义策略行为
+
 proxy-groups:
-  - name: 'Mode-Select'
+  # --- 顶层手动选择组 ---
+  - name: 'PROXY'
     type: select
     proxies:
-      - 'Nodes-Select'
-      - 'Landing-Nodes'
-      - 'Global-Direct'
+      - '🔰 自动选择'
+      - ' DIRECT'
+      - 'REJECT'
+      - '🌏 国外流量'
+      - '🇭🇰 香港节点'
+      - '🇯🇵 日本节点'
+      - '🇺🇸 美国节点'
 
-  - name: 'Nodes-Select'
-    type: select
-    proxies:
-      - 'URL-Test'
-      - 'Fallback'
-      - 'Load-Balance'
-    use:
-      - Provider-1
-      - Provider-2
-    exclude-filter: '^(Landing-Socks5-Example|Landing-SS-Example)$'
-
-  - name: 'Landing-Nodes'
-    type: select
-    proxies:
-      - 'Landing-Socks5-Example'
-      - 'Landing-SS-Example'
-
-  - name: 'URL-Test'
+  # --- 自动策略组 ---
+  - name: '🔰 自动选择'
     type: url-test
-    url: 'https://www.google.com/generate_204'
+    # 引入所有订阅源
+    use:
+      - MyProvider1
+      - MyProvider2
+    url: 'http://www.gstatic.com/generate_204'
+    interval: 300
+    # 延迟容忍值，防止频繁切换
+    tolerance: 50
+
+  - name: '🌏 国外流量'
+    type: url-test
+    use:
+      - MyProvider1
+      - MyProvider2
+    # 排除国内节点
+    exclude-filter: 'CN|中国|内|专线'
+    url: 'http://www.gstatic.com/generate_204'
     interval: 300
     tolerance: 50
-    use:
-      - Provider-1
-      - Provider-2
-    exclude-filter: '^(Landing-Socks5-Example|Landing-SS-Example)$'
 
-  - name: 'Fallback'
-    type: fallback
-    url: 'https://www.google.com/generate_204'
+  # --- 按区域筛选的策略组 ---
+  - name: '🇭🇰 香港节点'
+    type: url-test
+    use:
+      - MyProvider1
+      - MyProvider2
+    # 使用正则表达式筛选香港节点
+    filter: 'HK|Hong Kong|香港'
+    url: 'http://www.gstatic.com/generate_204'
     interval: 300
-    use:
-      - Provider-1
-      - Provider-2
-    exclude-filter: '^(Landing-Socks5-Example|Landing-SS-Example)$'
+    tolerance: 50
 
-  - name: 'Load-Balance'
-    type: load-balance
-    strategy: consistent-hashing
-    url: 'https://www.google.com/generate_204'
+  - name: '🇯🇵 日本节点'
+    type: url-test
+    use:
+      - MyProvider1
+      - MyProvider2
+    filter: 'JP|Japan|日本'
+    url: 'http://www.gstatic.com/generate_204'
     interval: 300
+    tolerance: 50
+
+  - name: '🇺🇸 美国节点'
+    type: url-test
     use:
-      - Provider-1
-      - Provider-2
-    exclude-filter: '^(Landing-Socks5-Example|Landing-SS-Example)$'
+      - MyProvider1
+      - MyProvider2
+    filter: 'US|United States|美国'
+    url: 'http://www.gstatic.com/generate_204'
+    interval: 300
+    tolerance: 50
 
-  # --- 其他功能性策略组 ---
-  - { name: 'AI-Services', type: select, proxies: ['Mode-Select', 'Nodes-Select', 'Landing-Nodes'], use: ['Provider-1', 'Provider-2'], exclude-filter: '(?i)港|hk|hongkong|hong kong|俄|ru|russia|澳|macao' }
-  - { name: 'Telegram', type: select, proxies: ['Mode-Select', 'Nodes-Select', 'Landing-Nodes'], use: ['Provider-1', 'Provider-2'] }
-  - { name: 'Google-Services', type: select, proxies: ['Mode-Select', 'Nodes-Select'], use: ['Provider-1', 'Provider-2'] }
-  - { name: 'Apple-Services', type: select, proxies: ['Mode-Select', 'Global-Direct'], use: ['Provider-1', 'Provider-2'] }
-  - { name: 'Microsoft-Services', type: select, proxies: ['Mode-Select', 'Global-Direct'], use: ['Provider-1', 'Provider-2'] }
-  - { name: 'Ad-Block', type: select, proxies: ['REJECT', 'DIRECT'] }
-  - { name: 'Global-Direct', type: select, proxies: ['DIRECT'] }
-  - { name: 'Custom-Direct', type: select, proxies: ['DIRECT', 'Mode-Select'], use: ['Provider-1', 'Provider-2'] }
-  - { name: 'Custom-Proxy', type: select, proxies: ['Mode-Select', 'Nodes-Select'], use: ['Provider-1', 'Provider-2'] }
-  - { name: 'Final-Match', type: select, proxies: ['Mode-Select', 'Nodes-Select', 'Landing-Nodes'], use: ['Provider-1', 'Provider-2'] }
+  # --- 特定服务策略组 ---
+  - name: '📺 Netflix'
+    type: select
+    proxies:
+      - '🇭🇰 香港节点'
+      - '🇯🇵 日本节点'
+      - '🇺🇸 美国节点'
+      - 'PROXY'
 
-# 规则集 (Rule Providers)
-# -----------------------------------------------
-rule-providers:
-  reject: { type: http, behavior: domain, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt", path: ./ruleset/reject.yaml, interval: 86400 }
-  icloud: { type: http, behavior: domain, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt", path: ./ruleset/icloud.yaml, interval: 86400 }
-  apple: { type: http, behavior: domain, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt", path: ./ruleset/apple.yaml, interval: 86400 }
-  google: { type: http, behavior: domain, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/google.txt", path: ./ruleset/google.yaml, interval: 86400 }
-  proxy: { type: http, behavior: domain, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt", path: ./ruleset/proxy.yaml, interval: 86400 }
-  direct: { type: http, behavior: domain, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt", path: ./ruleset/direct.yaml, interval: 86400 }
-  private: { type: http, behavior: domain, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt", path: ./ruleset/private.yaml, interval: 86400 }
-  gfw: { type: http, behavior: domain, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt", path: ./ruleset/gfw.yaml, interval: 86400 }
-  tld-not-cn: { type: http, behavior: domain, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/tld-not-cn.txt", path: ./ruleset/tld-not-cn.yaml, interval: 86400 }
-  telegramcidr: { type: http, behavior: ipcidr, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt", path: ./ruleset/telegramcidr.yaml, interval: 86400 }
-  cncidr: { type: http, behavior: ipcidr, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt", path: ./ruleset/cncidr.yaml, interval: 86400 }
-  lancidr: { type: http, behavior: ipcidr, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt", path: ./ruleset/lancidr.yaml, interval: 86400 }
-  applications: { type: http, behavior: classical, url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt", path: ./ruleset/applications.yaml, interval: 86400 }
-  openai: { type: http, behavior: classical, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/openai.yml", path: ./ruleset/openai.yaml, interval: 86400 }
-  microsoft: { type: http, behavior: classical, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.yml", path: ./ruleset/microsoft.yaml, interval: 86400 }
+  - name: '🎵 YouTube'
+    type: select
+    proxies:
+      - '🔰 自动选择'
+      - 'PROXY'
 
-# 路由规则 (Rules)
-# -----------------------------------------------
+# --- 规则集 (Section 5) ---
+# 定义流量分流规则，顺序至关重要
+
 rules:
-  # --- 自定义规则 ---
-  - PROCESS-NAME,steam.exe,Custom-Direct
-  - DOMAIN-SUFFIX,immersivetranslate.com,Custom-Proxy
-  # --- 规则集 ---
-  - RULE-SET,applications,Global-Direct
-  - RULE-SET,private,Global-Direct
-  - RULE-SET,reject,Ad-Block
-  - RULE-SET,microsoft,Microsoft-Services
-  - RULE-SET,icloud,Apple-Services
-  - RULE-SET,apple,Apple-Services
-  - RULE-SET,google,Google-Services
-  - RULE-SET,openai,AI-Services
-  - RULE-SET,proxy,Mode-Select
-  - RULE-SET,gfw,Mode-Select
-  - RULE-SET,tld-not-cn,Mode-Select
-  - RULE-SET,direct,Global-Direct
-  - RULE-SET,lancidr,Global-Direct,no-resolve
-  - RULE-SET,cncidr,Global-Direct,no-resolve
-  - RULE-SET,telegramcidr,Telegram,no-resolve
-  # --- GEOIP规则 ---
-  - GEOIP,LAN,Global-Direct,no-resolve
-  - GEOIP,CN,Global-Direct,no-resolve
-  # --- 兜底规则 ---
-  - MATCH,Final-Match
+  # --- 直连规则 ---
+  # 局域网地址
+  - GEOIP, LAN, DIRECT
+  # 中国大陆 IP
+  - GEOIP, CN, DIRECT
+  # 中国大陆域名
+  - GEOSITE, CN, DIRECT
+  # 常见需要直连的服务
+  - GEOSITE, Private, DIRECT
+  - GEOSITE, Apple-CN, DIRECT
+  - GEOSITE, Microsoft-CN, DIRECT
 
+  # --- 代理规则 ---
+  # 特定服务走特定策略
+  - GEOSITE, Netflix, '📺 Netflix'
+  - GEOSITE, Youtube, '🎵 YouTube'
+  # Telegram IP 走代理，无需解析域名，提高速度和抗污染
+  - GEOIP, Telegram, PROXY, no-resolve
+  # 国外知名网站
+  - GEOSITE, Google, PROXY
+  - GEOSITE, Facebook, PROXY
+  - GEOSITE, Twitter, PROXY
+
+  # --- 最终规则 ---
+  # 未被匹配的非中国大陆流量走代理
+  - GEOSITE, Geolocation-!CN, PROXY
+  # 所有其他未匹配的流量走总代理入口
+  - MATCH, PROXY
