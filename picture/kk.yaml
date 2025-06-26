@@ -82,7 +82,7 @@ proxy-providers:
   # 示例订阅源 1
   MyProvider1:
     type: http
-    url: "https://your-subscription-url-1.com/sub"
+    url: "https://push.cauenvao.click/api/v1/client/subscribe?token=1a6d8263800c15ecb2c53acc163dc5fb"
     # 每小时更新一次
     interval: 3600
     path:./providers/provider1.yaml
@@ -93,7 +93,7 @@ proxy-providers:
   # 示例订阅源 2
   MyProvider2:
     type: http
-    url: "https://your-subscription-url-2.com/sub"
+    url: "https://rgergergergerg6555.saojc.xyz/api/v1/client/subscribe?token=44e06d7500a929e0ea0e21f4d09d0273"
     interval: 3600
     path:./providers/provider2.yaml
     health-check:
